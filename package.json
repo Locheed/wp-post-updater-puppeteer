@@ -1,0 +1,17 @@
+{
+    "name": "wp-post-updater-puppeteer",
+    "version": "1.0.0",
+    "description": "Puppeteer script to update WordPress posts with a real Update button click.",
+    "main": "index.js",
+    "dependencies": {
+        "cli-table": "^0.3.6",
+        "puppeteer": "^10.2.0"
+    },
+    "devDependencies": {},
+    "scripts": {
+        "start": "node index.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "Mika Vesasto",
+    "license": "MIT"
+}
