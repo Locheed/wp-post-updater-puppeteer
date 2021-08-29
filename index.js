@@ -1,78 +1,53 @@
 const puppeteer = require("puppeteer");
+
+// Library files
 const table = require("./lib/table");
+const fetchPageAmount = require("./lib/fetchPageAmount");
+const collectLinks = require("./lib/collectLinks");
+const updatePost = require("./lib/updatePost");
+const loginToWP = require("./lib/login");
 
 // Setup details of the website
-const domain = "http://domain.local";
-const username = "Username here";
-const password = "Password here";
+const domain = "http://scrapingdev.local";
+const username = "mika";
+const password = "mika";
 const postTypeSlug = "post";
 
 // Amount of pages is automatically fetched. You can override it here.
-let amountOfPagesAvailable = null;
+let amountOfPagesAvailableOverride = null;
+
+// Disable this if you really wanna see what the script really does.
+const runTheBrowserHeadless = false;
 
 // =============================================================================
 // Scripting starts here. No need to edit beyond this point.
 // =============================================================================
 (async () => {
-    const browser = await puppeteer.launch({ headless: false });
+    let amountOfPagesAvailable = null;
+    const browser = await puppeteer.launch({ headless: runTheBrowserHeadless });
     const page = await browser.newPage();
 
     // We first need to login to WordPress admin with Puppeteer
-    await page.goto(`${domain}/wp-admin`);
-    await page.type("#user_login", username);
-    await page.type("#user_pass", password);
-    await page.click("#wp-submit");
-    await page.waitForNavigation({ waitUntil: "networkidle0" });
+    await loginToWP(page, domain, username, password);
 
     // Fetch the total number of pages available for looping
-    if (!amountOfPagesAvailable) {
-        console.log("Collecting total number of pages...");
-        await page.goto(
-            `${domain}/wp-admin/edit.php?post_type=${postTypeSlug}`
-        );
-        amountOfPagesAvailable = await page.$eval(
-            "span.total-pages",
-            (el) => el.innerText
-        );
-        console.log(`Found total of ${amountOfPagesAvailable} pages.`);
-    }
-
-    // Initialize urls array of posts
-    let linksToVisit = [];
+    amountOfPagesAvailable = await fetchPageAmount(
+        page,
+        amountOfPagesAvailableOverride,
+        domain,
+        postTypeSlug
+    );
 
     // Loop throught all the pages available from current post type
-    for (let i = 1; i <= amountOfPagesAvailable; i++) {
-        await page.goto(
-            `${domain}/wp-admin/edit.php?post_type=${postTypeSlug}&paged=${i}`
-        );
-        await page.waitForSelector("a.row-title");
-        const linksFromPage = await page.$$eval("a.row-title", (link) =>
-            link.map((a) => a.href)
-        );
-        // Combine currently looped page links with last ones
-        linksToVisit = [...linksToVisit, ...linksFromPage];
-    }
+    const linksToVisit = await collectLinks(
+        page,
+        amountOfPagesAvailable,
+        domain,
+        postTypeSlug
+    );
 
     // Loop throught all the fetched post urls and click 'Update'
-    const publishButtonSelector = "button.editor-post-publish-button__button";
-    for (var i = 0; i < linksToVisit.length; i++) {
-        await page.goto(linksToVisit[i]);
-        await page.waitForSelector(publishButtonSelector);
-
-        console.log(`Updating post ${i + 1} of ${linksToVisit.length}`);
-        // Sometimes the update button is disabled. This hapens when post does
-        // not have ACF fields or it does not have anything new to save. So we skip these.
-        const attr = await page.$$eval(publishButtonSelector, (el) =>
-            el.map((x) => x.getAttribute("aria-disabled"))
-        );
-
-        if (!attr[0]) {
-            await page.click(publishButtonSelector);
-            table.push([i + 1, linksToVisit[i], "OK"]);
-        } else {
-            table.push([i + 1, linksToVisit[i], "FAIL"]);
-        }
-    }
+    await updatePost(page, linksToVisit, table);
 
     // Output data table
     console.log(table.toString());
