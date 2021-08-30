@@ -8,13 +8,17 @@ const updatePost = require("./lib/updatePost");
 const loginToWP = require("./lib/login");
 
 // Setup details of the website
-const domain = "http://scrapingdev.local";
-const username = "mika";
-const password = "mika";
+const domain = "http://domain.local";
+const username = "Username here";
+const password = "Password here";
 const postTypeSlug = "post";
 
 // Amount of pages is automatically fetched. You can override it here.
-let amountOfPagesAvailableOverride = null;
+const amountOfPagesAvailableOverride = null;
+
+// Link number where we start updating the posts. This is good if some reason
+// the script has stopped. No need to start from first post again.
+const startUpdatingFromPost = 0;
 
 // Disable this if you really wanna see what the script really does.
 const runTheBrowserHeadless = false;
@@ -47,7 +51,7 @@ const runTheBrowserHeadless = false;
     );
 
     // Loop throught all the fetched post urls and click 'Update'
-    await updatePost(page, linksToVisit, table);
+    await updatePost(page, linksToVisit, table, startUpdatingFromPost);
 
     // Output data table
     console.log(table.toString());

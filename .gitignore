@@ -2,6 +2,9 @@
 # Created by https://www.toptal.com/developers/gitignore/api/macos,windows,node,yarn
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos,windows,node,yarn
 
+# Script files
+foundlinks.txt
+
 ### macOS ###
 # General
 .DS_Store
